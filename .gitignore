@@ -1,0 +1,5 @@
+# compiled python
+*.pyc
+
+# emacs temp files
+*~
