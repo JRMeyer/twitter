@@ -3,3 +3,6 @@
 
 # emacs temp files
 *~
+
+# twitter API auth codes
+accessKeys.py
