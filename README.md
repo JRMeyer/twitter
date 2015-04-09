@@ -1,3 +1,4 @@
 # twitter
-This is a collection of scripts mostly focused on collecting 
-and analyzing geo-tagged tweets via Tweepy.
+a collection of scripts focused on collecting 
+and analyzing geo-tagged tweets via Tweepy and
+Twitter's streaming and search API
