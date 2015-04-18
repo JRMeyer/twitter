@@ -58,10 +58,10 @@ class CustomStreamListener(tweepy.StreamListener):
 
 sapi = tweepy.streaming.Stream(auth, CustomStreamListener())
 
-sapi.filter(locations=[22.1357201,                                              # Western latitude
-                       44.386383,                                               # Southern longitude
-                       40.227172,                                               # Eastern latirude
-                       52.379475])                                              # Northern longitude
+sapi.filter(locations=[22.1357201,                                              # Western longitude
+                       44.386383,                                               # Southern latitude
+                       40.227172,                                               # Eastern longitude
+                       52.379475])                                              # Northern latitude
 
                                                                                 # to get all geotagged
                                                                                 # tweets, use [-180,-90,180,90]
