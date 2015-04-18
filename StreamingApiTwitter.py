@@ -6,6 +6,8 @@ from accessKeys import consumer_key, consumer_secret, access_key, access_secret 
                                                                                 # Lots of good info about the api: 
                                                                                 # https://dev.twitter.com/overview/api/tweets
 
+outFile = '/home/josh/google_drive/fetched_tweets.txt'                          # file to which fetched tweets are saved, and it
+                                                                                # does not need to already exist to run script
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_key, access_secret)
@@ -15,7 +17,7 @@ class CustomStreamListener(tweepy.StreamListener):
     This is the listener, resposible for receiving data
     '''
     def on_status(self, tweet):
-        with open('/home/josh/google_drive/fetched_tweets.txt','a') as tf:
+        with open(outFile,'a') as tf:
             if tweet.coordinates == None:                                       # throw out any tweet without geotag
                 pass
             else:                                                               # get relevant info and encode in utf-8
@@ -43,13 +45,13 @@ class CustomStreamListener(tweepy.StreamListener):
         return True
 
     def on_error(self, status_code):
-        with open('/home/josh/google_drive/fetched_tweets.txt','a') as tf:
+        with open(outFile,'a') as tf:
             tf.write(sys.stderr, 'Encountered error with status code:', 
                      status_code)
         return True                                                             # Don't kill the stream
 
     def on_timeout(self):
-        with open('/home/josh/google_drive/fetched_tweets.txt','a') as tf:
+        with open(outFile,'a') as tf:
             tf.write(sys.stderr, 'Timeout...')
         return True                                                             # Don't kill the stream
 
