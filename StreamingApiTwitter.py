@@ -3,11 +3,11 @@ import tweepy
 from accessKeys import consumer_key, consumer_secret, access_key, access_secret # These keys are on your application's Details
                                                                                 # page at https://dev.twitter.com/apps
 
-                                                                                # Lots of good info about the api: 
+                                                                                # Lots of good info about the API: 
                                                                                 # https://dev.twitter.com/overview/api/tweets
 
 outFile = '/home/josh/google_drive/fetched_tweets.txt'                          # file to which fetched tweets are saved, and it
-                                                                                # does not need to already exist to run script
+                                                                                # does not need to already exist
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_key, access_secret)
@@ -48,15 +48,20 @@ class CustomStreamListener(tweepy.StreamListener):
         with open(outFile,'a') as tf:
             tf.write(sys.stderr, 'Encountered error with status code:', 
                      status_code)
-        return True                                                             # Don't kill the stream
+        return True                                                             # Don't kill the stream on an error
 
     def on_timeout(self):
         with open(outFile,'a') as tf:
             tf.write(sys.stderr, 'Timeout...')
-        return True                                                             # Don't kill the stream
+        return True                                                             # Don't kill the stream on timeout
 
 
-sapi = tweepy.streaming.Stream(auth, CustomStreamListener())    
-sapi.filter(locations=[22.1357201,44.386383,40.227172,52.379475])               # [Southwest_corner, Northeast_corner] of box 
-                                                                                # to include tweets from, to get all geotagged
+sapi = tweepy.streaming.Stream(auth, CustomStreamListener())
+
+sapi.filter(locations=[22.1357201,                                              # Western latitude
+                       44.386383,                                               # Southern longitude
+                       40.227172,                                               # Eastern latirude
+                       52.379475])                                              # Northern longitude
+
+                                                                                # to get all geotagged
                                                                                 # tweets, use [-180,-90,180,90]
