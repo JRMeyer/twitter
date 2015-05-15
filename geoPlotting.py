@@ -75,34 +75,45 @@ print df['tweet_lang'].value_counts()
 print df['user_lang'].value_counts()
 
 
-if ukraine:
-    ru = df[df['tweet_lang'] == 'ru']
-    uk = df[df['tweet_lang'] == 'uk']
+en = df[df['tweet_lang'] == 'en']
+enlats=[]
+enlons=[]
+for pair in en['coords']:
+    pair = ast.literal_eval(pair)
+    enlats.append(pair[1])
+    enlons.append(pair[0])
+print "English tweets = " + str(len(enlats))
 
-    rulats=[]
-    rulons=[]
-    for pair in ru['coords']:
-        pair = ast.literal_eval(pair)
-        rulats.append(pair[1])
-        rulons.append(pair[0])
-    print "Russian tweets = " + str(len(rulats))
 
-    uklats=[]
-    uklons=[]
-    for pair in uk['coords']:
-        pair = ast.literal_eval(pair)
-        uklats.append(pair[1])
-        uklons.append(pair[0])
-    print "Ukrainian tweets = " + str(len(uklats))
+# if ukraine:
+#     ru = df[df['tweet_lang'] == 'ru']
+#     uk = df[df['tweet_lang'] == 'uk']
 
-elif border:
-    lats=[]
-    lons=[]
-    for pair in df['coords']:
-        pair = ast.literal_eval(pair)
-        lats.append(pair[1])
-        lons.append(pair[0])
-    print "Border tweets = " + str(len(lats))
+#     rulats=[]
+#     rulons=[]
+#     for pair in ru['coords']:
+#         pair = ast.literal_eval(pair)
+#         rulats.append(pair[1])
+#         rulons.append(pair[0])
+#     print "Russian tweets = " + str(len(rulats))
+
+#     uklats=[]
+#     uklons=[]
+#     for pair in uk['coords']:
+#         pair = ast.literal_eval(pair)
+#         uklats.append(pair[1])
+#         uklons.append(pair[0])
+#     print "Ukrainian tweets = " + str(len(uklats))
+
+
+# elif border:
+#     lats=[]
+#     lons=[]
+#     for pair in df['coords']:
+#         pair = ast.literal_eval(pair)
+#         lats.append(pair[1])
+#         lons.append(pair[0])
+#     print "Border tweets = " + str(len(lats))
 
 
 def plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, title, 
@@ -120,25 +131,29 @@ def plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, title,
         m.drawstates()
         m.drawrivers(linewidth=.1)
 
-        plt.title((str(len(lats)))+ \
-            title,
-            fontsize=12)
+        # plt.title((str(len(lats)))+ \
+        #     title,
+        #     fontsize=12)
 
         x,y = m(lons, lats)
         if color == 'r':
             plt.hexbin(x, y, gridsize=40, cmap=plt.cm.Reds)
-        elif color == 'b':
-            plt.hexbin(x, y, gridsize=40, cmap=plt.cm.Blues)
+        if color == 'b':
+            plt.hexbin(x, y, gridsize=40, cmap=plt.cm.Blues)        
+        if color == 'g':
+            plt.hexbin(x, y, gridsize=40, cmap=plt.cm.Greens)
         m.scatter(lons, lats, 1, marker='o',color=color, latlon=True)
         plt.show()
 
 
 
 if ukraine:
-    plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, "Russian", 
-            rulons, rulats, 'r')
-    plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, "Ukrainian", 
-            uklons, uklats, 'b')
+    # plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, "Russian", 
+    #         rulons, rulats, 'r')
+    # plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, "Ukrainian", 
+    #         uklons, uklats, 'b')
+    plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, "English", 
+            enlons, enlats, 'g')
 
 elif border:
     plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, "Border", 
