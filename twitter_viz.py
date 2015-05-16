@@ -103,13 +103,18 @@ def plot_length_of_tweets(dirPath, lang, kind):
     plt.show()
 
 
-def plot_token_count(dirPath, token):
+def plot_token_count(dirPath, searchTerms, userORtweetText):
     '''
     Given a search term, 'token', plot the percentage of tweets in which that
     token appears relative to all tweets in that language.
     '''
+    if userORtweetText == 'user':
+        level = 4
+    elif userORtweetText == 'tweetText':
+        level = 5
+    else:
+        print 'ERROR'
     plt.figure()
-    token = codecs.decode(token, 'utf-8')
     for lang in ['ru', 'uk', 'en']:
         dayTweetCounts=[]
         for tweetFile in os.listdir(dirPath):
@@ -125,38 +130,49 @@ def plot_token_count(dirPath, token):
                     try:
                         date = rawTweet.split('\t')[3]
                         # just look at one language
-                        if rawTweet.split('\t')[4] == lang:
+                        if rawTweet.split('\t')[level] == lang:
                             numTweets+=1
                             # look for the search term in the tweet text
-                            if re.compile(token).search(rawTweet.split('\t')[1].lower()):
-                                numTokens+=1
+                            for token in searchTerms:
+                                token = codecs.decode(token, 'utf-8')
+                                if re.compile(token).search(rawTweet.split('\t')[1].lower()):
+                                    numTokens+=1
                     except:
                         pass
             dayTweetCounts.append((pd.to_datetime(date, dayfirst=False), 
-                                   numTokens/(numTweets+1)))
+                                   numTokens/(numTweets+1)*100))
         df = pd.DataFrame(dayTweetCounts, columns=['date', 'freq'])
         df = df.sort('date', ascending=True)
         df[1:].plot(x='date', y='freq', label = lang)
 
     legend = plt.legend(loc='best')
-    plt.title('Frequency of Matches per Day for Political Terms')
+    plt.title('Political Tweets per Day')
+    plt.xlabel("Day")
+    plt.ylabel("Percent of Tweets")
     plt.show()
 
 
 def main():
     dirPath = sys.argv[1]
+    level = sys.argv[2]
 
-    merged = 'минск|мінськ|minsk|путин|путін|putin|порошченко|poroshenko|крым|crimea|обам|obama|сша|usa|війн|war|новост|новини|news'
-    politics = 'политик|політик|politic'
-    minsk = 'минск|мінськ|minsk'
-    putin = 'путин|путін|putin'
-    poroshenko = 'порошченко|poroshenko'
-    crimea = 'крым|crimea'
-    usa = 'обам|obama|сша|usa'
-    war = 'войн|війн|war'
-    news = 'новост|новини|news'
+    politics = 'политик|політик|politic'       # ru and en peak
+    minsk = 'минск.*соглашен|мінськ.*угод|minsk agreement'   # lots higher and en peaks
+    putin = 'путин|путін|putin'                # uk peaks early
+    poroshenko = 'порошченко|poroshenko'       # low random 
+    crimea = 'крым|крим|crimea'                # ukraine peaks early
+    usa = 'обам|obama|сша|usa'                 # en peaks late
+    war = 'войн[ау]|війн[ау]|war '                  # peaks april
+    news = 'новост|новини|news'                # 
+    dnr = 'днр|dnr|лнр|lnr'                    # very few
+    revolution = 'революци|революці|revolution' # very en peaks
+    donbass = 'донбас|donbass'                 # uk peaks early
+    donetsk = 'донецк|донецьк|donetsk'
+    maidan = 'майдан|maidan'
+    merged = [politics, minsk, putin, poroshenko, crimea, usa, news, dnr, 
+              revolution, donbass, donetsk, maidan]
 
-    plot_token_count(dirPath,merged)
+    plot_token_count(dirPath, merged, level)
 
 
 if __name__ == "__main__":
