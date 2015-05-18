@@ -7,6 +7,13 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import re
+import csv
+import ast
+from nltk import FreqDist
+from collections import Counter
+import numpy as np
+import csv
+
 
 def df_from_hashtags(dirPath, lang, numHashtags):
     '''
@@ -24,42 +31,42 @@ def df_from_hashtags(dirPath, lang, numHashtags):
         if os.path.isfile(dirPath+tweetFile):
             numTweets=0
             oneDay=[]
-            # using codecs for encoding issues, not sure if needed
-            rawFile = codecs.open(dirPath + tweetFile, 'r', 'utf-8')
-            # my tweet files have one tweet per line
-            for rawTweet in rawFile:
-                try:
-                    date = rawTweet.split('\t')[3]
+            with open(dirPath+tweetFile, 'rU') as csvfile:
+                rawFile = csv.reader(csvfile, delimiter='\t', quotechar='"')
+                for rawTweet in rawFile:
+                    date = rawTweet[3]
                     # just look at one language
-                    if rawTweet.split('\t')[4] == lang:
+                    if rawTweet[4] == lang:
                         numTweets += 1
-                        # hashtags in as third column of file
-                        hashtag = ast.literal_eval(rawTweet.split('\t')[2])
+                        hashtag = ast.literal_eval(rawTweet[2])
                         # if the list 'hashtag' has contents
                         if hashtag:
                             # each hashtag is an entry in a dict
                             for d in hashtag:
                                 oneDay.append([d['text']][0].lower())
-                # ^M (Windows newline) keeps goofing things up
-                except:
-                    pass
         hashList.append((date, oneDay, numTweets))
+
     listOfTuples=[]
     for day in hashList:
+        if numHashtags == 'all':
+            for hashtag in FreqDist(day[1]).items():
+                listOfTuples.append((pd.to_datetime(day[0], dayfirst=False), 
+                                     hashtag[0], (hashtag[1]/day[2]), hashtag[1]))
         # only look at n most common hashtags per day
-        for hashtag in FreqDist(day[1]).items()[:numHashtags]:
-            listOfTuples.append((pd.to_datetime(day[0], dayfirst=False), 
-                                 hashtag[0], (hashtag[1]/day[2]), hashtag[1]))
-    df = pd.DataFrame(listOfTuples, 
-                      columns=['date', 'hashtag', 'freq', 'count'])
-    print 'Hashtags read in...'
-    return df 
+        else:
+            for hashtag in FreqDist(day[1]).items()[:numHashtags]:
+                listOfTuples.append((pd.to_datetime(day[0], dayfirst=False), 
+                                     hashtag[0], (hashtag[1]/day[2]), hashtag[1]))
 
+    df = pd.DataFrame(listOfTuples,columns=['date', 'hashtag', 'freq', 'count'])
+
+    print 'Hashtags read in...'
+    print 'The shape of the DataFrame is: ' + str(df.shape)
+    return df
 
 
 def plot_common_hashtags(dirPath, lang, numHashtags, numHashtagsPlot):
     df = df_from_hashtags(dirPath, lang, numHashtags)
-    print df[df['hashtag']==u'україна']
 
     # aggregate hashtags to find most common over all days
     groupDF = df.reset_index().groupby('hashtag').sum()
@@ -79,68 +86,62 @@ def plot_length_of_tweets(dirPath, lang, kind):
     '''
     tweetLens=[]
     for tweetFile in os.listdir(dirPath):
-        # make sure tweetFile is a file, not a dir
         if os.path.isfile(dirPath+tweetFile):
-            # using codecs for encoding issues, not sure if needed
-            rawFile = codecs.open(dirPath + tweetFile, 'r', 'utf-8')
-            # my tweet files have one tweet per line
-            for rawTweet in rawFile:
-                try:
-                    # just look at one language
-                    if rawTweet.split('\t')[4] == lang:
+            with open(dirPath+tweetFile, 'rU') as csvfile:
+                rawFile = csv.reader(csvfile, delimiter='\t', quotechar='"')
+                for rawTweet in rawFile:
+                    text = codecs.decode(rawTweet[1], 'utf-8')
+                    if rawTweet[4] == lang:
                         if kind == 'char':
-                            tweetLens.append(len(rawTweet.split('\t')[1]))
+                            tweetLens.append(len(text))
                         if kind == 'token':
-                            tweetLens.append(len(
-                                rawTweet.split('\t')[1].split(' ')))
-                except:
-                    pass
-    plt.hist(tweetLens, bins=35)
-    plt.axis([0, 35, 0, 80000])
-    plt.title("Russian Tweet Length Histogram")
+                            tweetLens.append(len(text.split(' ')))
+    print len(tweetLens)
+    print np.mean(tweetLens)
+    # use as many bins as longest tweet
+    plt.hist(tweetLens, bins = max(tweetLens))
+    # the 1.05* adds a little buffer space between edge of plot and max points
+    xmax = (1.05*(max(tweetLens)))
+    ymax = (1.05*(max([value for value in Counter(tweetLens).values()])))
+    plt.axis([0, xmax, 0, ymax])
     plt.xlabel("Length")
     plt.ylabel("Frequency")
     plt.show()
 
 
-def plot_token_count(dirPath, searchTerms, userORtweetText):
+def plot_token_count(dirPath, userORtweetLang, searchTerms):
     '''
     Given a search term, 'token', plot the percentage of tweets in which that
     token appears relative to all tweets in that language.
     '''
-    if userORtweetText == 'user':
+    if userORtweetLang == 'user':
         level = 4
-    elif userORtweetText == 'tweetText':
+    elif userORtweetLang == 'tweet':
         level = 5
-    else:
-        print 'ERROR'
     plt.figure()
+
     for lang in ['ru', 'uk', 'en']:
         dayTweetCounts=[]
         for tweetFile in os.listdir(dirPath):
-            print tweetFile
-            numTokens = 0
-            numTweets = 0
             # make sure tweetFile is a file, not a dir
             if os.path.isfile(dirPath+tweetFile):
-                # using codecs for encoding issues, not sure if needed
-                rawFile = codecs.open(dirPath + tweetFile, 'r', 'utf-8')
-                # my tweet files have one tweet per line
-                for rawTweet in rawFile:
-                    try:
-                        date = rawTweet.split('\t')[3]
-                        # just look at one language
-                        if rawTweet.split('\t')[level] == lang:
-                            numTweets+=1
-                            # look for the search term in the tweet text
+                numMatches = 0
+                langTweets = 0
+                totalTweets = 0
+                with open(dirPath+tweetFile, 'rU') as csvfile:
+                    rawFile = csv.reader(csvfile, delimiter='\t', quotechar='"')
+                    for rawTweet in rawFile:
+                        totalTweets+=1
+                        if rawTweet[4] == lang:
+                            langTweets+=1
+                            date = rawTweet[3]
+                            text = codecs.decode(rawTweet[1], 'utf-8').lower()
                             for token in searchTerms:
-                                token = codecs.decode(token, 'utf-8')
-                                if re.compile(token).search(rawTweet.split('\t')[1].lower()):
-                                    numTokens+=1
-                    except:
-                        pass
-            dayTweetCounts.append((pd.to_datetime(date, dayfirst=False), 
-                                   numTokens/(numTweets+1)*100))
+                                token = re.compile(token, re.UNICODE)
+                                if re.search(token,text):
+                                    numMatches+=1
+                dayTweetCounts.append((pd.to_datetime(date, dayfirst=False),
+                                       ((numMatches+1)/(langTweets+1))))
         df = pd.DataFrame(dayTweetCounts, columns=['date', 'freq'])
         df = df.sort('date', ascending=True)
         df[1:].plot(x='date', y='freq', label = lang)
@@ -153,27 +154,33 @@ def plot_token_count(dirPath, searchTerms, userORtweetText):
 
 
 def main():
-    dirPath = sys.argv[1]
-    level = sys.argv[2]
+
+    one = sys.argv[1]
+    two = sys.argv[2]
 
     politics = 'политик|політик|politic'       # ru and en peak
     minsk = 'минск.*соглашен|мінськ.*угод|minsk agreement'   # lots higher and en peaks
     putin = 'путин|путін|putin'                # uk peaks early
     poroshenko = 'порошченко|poroshenko'       # low random 
     crimea = 'крым|крим|crimea'                # ukraine peaks early
-    usa = 'обам|obama|сша|usa'                 # en peaks late
-    war = 'войн[ау]|війн[ау]|war '                  # peaks april
-    news = 'новост|новини|news'                # 
-    dnr = 'днр|dnr|лнр|lnr'                    # very few
+    usa = 'обам[ау]|obama|сша|usa '                 # en peaks late
+    war = 'войн[ау]|війн[ау]|war '             # peaks april
+    news = 'новост|новини|news '                # 
+    dnr = 'днр|dnr'                          # few
+    lnr = 'лнр|lnr'                           # very few
     revolution = 'революци|революці|revolution' # very en peaks
     donbass = 'донбас|donbass'                 # uk peaks early
     donetsk = 'донецк|донецьк|donetsk'
     maidan = 'майдан|maidan'
-    merged = [politics, minsk, putin, poroshenko, crimea, usa, news, dnr, 
-              revolution, donbass, donetsk, maidan]
+    simferopol = 'севастополь|sevastopol'
+    merged = [politics, minsk, putin, poroshenko, crimea, usa, news, dnr, lnr, 
+              revolution, donbass, donetsk, maidan, war, simferopol]
 
-    plot_token_count(dirPath, merged, level)
+    plot_token_count(one, two, merged)
+
+    #plot_length_of_tweets(one, two, 'char')
 
 
 if __name__ == "__main__":
     main()
+
