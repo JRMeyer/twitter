@@ -78,7 +78,6 @@ def plot_common_hashtags(dirPath, lang, numHashtags, numHashtagsPlot):
     plt.show()
 
 
-
 def plot_length_of_tweets(dirPath, lang, kind):
     '''
     create a histogram of length of tweets, in characters or tokens

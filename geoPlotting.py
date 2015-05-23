@@ -1,4 +1,4 @@
-import ast                                                                      # convert string to literal
+import ast
 import pandas as pd
 import numpy as np
 from mpl_toolkits.basemap import Basemap
@@ -6,114 +6,62 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 import csv
 import os
-# import countries                                                              # countries.py needs to be in same dir as this script
+# countries.py needs to be in same dir as this script
+# import countries
 
 
-myDir = '/home/josh/google_drive/twitter/fetched_tweets/'
+def get_coords_by_language(myPath):
 
-ukraine = 1
-border = 0
+    if os.path.isdir(myPath):
+        fileNames = [f for f in os.listdir(myPath) if f.endswith('.txt')]
+        
+    elif os.path.isfile(myPath):
+        fileNames = [myPath]
+        
+    tweets=[]
+    for fileName in fileNames:
+        fullpath = myDir+fileName
+        with open(fullpath, 'rU') as csvfile:
+             f = csv.reader(csvfile, delimiter='\t', quotechar='"')
+             for row in f:
+                 tweets.append(row)
 
-# ukraine
-llcrnrlon = 22.1357201
-llcrnrlat = 44.386383
-urcrnrlon = 40.227172
-urcrnrlat = 52.379475
+        df = pd.DataFrame(tweets, columns=['coords',
+                                             'text',
+                                             'hashtags',
+                                             'time',
+                                             'tweet_lang',
+                                             'user_lang',
+                                             'tweet_id',
+                                             'user_id'])
 
-# # us-mexico border
-# llcrnrlat = 14
-# llcrnrlon = -124
-# urcrnrlat = 38
-# urcrnrlon = -86
+    ru = df[df['tweet_lang'] == 'ru']
+    uk = df[df['tweet_lang'] == 'uk']
+    en = df[df['tweet_lang'] == 'en']
 
+    rulats=[]
+    rulons=[]
+    for pair in ru['coords']:
+        pair = ast.literal_eval(pair)
+        rulats.append(pair[1])
+        rulons.append(pair[0])
 
-fileNames = [f for f in os.listdir(myDir) if f.endswith('.txt')]
+    uklats=[]
+    uklons=[]
+    for pair in uk['coords']:
+        pair = ast.literal_eval(pair)
+        uklats.append(pair[1])
+        uklons.append(pair[0])
 
-tweets=[]
-for fileName in fileNames:
-    print '====='
-    print fileName
+    enlats=[]
+    enlons=[]
+    for pair in en['coords']:
+        pair = ast.literal_eval(pair)
+        enlats.append(pair[1])
+        enlons.append(pair[0])
 
-    fullpath = myDir+fileName
-    with open(fullpath, 'rU') as csvfile:
-         f = csv.reader(csvfile, delimiter='\t', quotechar='"')
-         for row in f:
-             tweets.append(row)
+    return rulats, rulons, uklats, uklons, enlats, enlons
 
-    df = pd.DataFrame(tweets, columns=['coords',
-                                         'text',
-                                         'hashtags',
-                                         'time',
-                                         'tweet_lang',
-                                         'user_lang',
-                                         'tweet_id',
-                                         'user_id'])
-
-    print "the df has the shape: " + str(df.shape)
-
-
-# cc = countries.CountryChecker('/home/josh/google_drive/misc/TM_WORLD_BORDERS-0.3/TM_WORLD_BORDERS-0.3.shp')
-# country = []
-# i=0
-# for coords in df['coords']:
-#     pair = ast.literal_eval(coords)
-#     try:
-#         label = cc.getCountry(countries.Point(pair[1], pair[0])).iso
-#     except AttributeError:
-#         label = "NaN"
-#     country.append(label)
-#     i+=1
-#     print i
-
-# df['country'] = pd.Series(country)
-# print df['country'].value_counts()
-
-# df = df[df['country']=='NaN']
-
-print df.shape
-print df['tweet_lang'].value_counts()
-print df['user_lang'].value_counts()
-
-
-en = df[df['tweet_lang'] == 'en']
-enlats=[]
-enlons=[]
-for pair in en['coords']:
-    pair = ast.literal_eval(pair)
-    enlats.append(pair[1])
-    enlons.append(pair[0])
-print "English tweets = " + str(len(enlats))
-
-
-# if ukraine:
-#     ru = df[df['tweet_lang'] == 'ru']
-#     uk = df[df['tweet_lang'] == 'uk']
-
-#     rulats=[]
-#     rulons=[]
-#     for pair in ru['coords']:
-#         pair = ast.literal_eval(pair)
-#         rulats.append(pair[1])
-#         rulons.append(pair[0])
-#     print "Russian tweets = " + str(len(rulats))
-
-#     uklats=[]
-#     uklons=[]
-#     for pair in uk['coords']:
-#         pair = ast.literal_eval(pair)
-#         uklats.append(pair[1])
-#         uklons.append(pair[0])
-#     print "Ukrainian tweets = " + str(len(uklats))
-
-
-# elif border:
-#     lats=[]
-#     lons=[]
-#     for pair in df['coords']:
-#         pair = ast.literal_eval(pair)
-#         lats.append(pair[1])
-#         lons.append(pair[0])
-#     print "Border tweets = " + str(len(lats))
 
 
 def plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, title, 
@@ -131,9 +79,9 @@ def plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, title,
         m.drawstates()
         m.drawrivers(linewidth=.1)
 
-        # plt.title((str(len(lats)))+ \
-        #     title,
-        #     fontsize=12)
+        plt.title((str(len(lats)))+ \
+            title,
+            fontsize=12)
 
         x,y = m(lons, lats)
         if color == 'r':
@@ -147,17 +95,46 @@ def plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, title,
 
 
 
-if ukraine:
-    # plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, "Russian", 
-    #         rulons, rulats, 'r')
-    # plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, "Ukrainian", 
-    #         uklons, uklats, 'b')
+# def find_country_for_coords():
+#     cc = countries.CountryChecker('/home/josh/google_drive/misc/TM_WORLD_BORDERS-0.3/TM_WORLD_BORDERS-0.3.shp')
+#     country = []
+#     i=0
+#     for coords in df['coords']:
+#         pair = ast.literal_eval(coords)
+#         try:
+#             label = cc.getCountry(countries.Point(pair[1], pair[0])).iso
+#         except AttributeError:
+#             label = "NaN"
+#         country.append(label)
+#         i+=1
+#         print i
+
+#     df['country'] = pd.Series(country)
+#     print df['country'].value_counts()
+
+#     df = df[df['country']=='NaN']
+
+
+
+def main(myPath):
+    # Ukraine coords
+    llcrnrlon = 22.1357201
+    llcrnrlat = 44.386383
+    urcrnrlon = 40.227172
+    urcrnrlat = 52.379475
+
+    rulons,rulats, uklons,uklats, enlons,enlats = get_coords_by_language(myPath)
+    
+    plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, "Russian", 
+            rulons, rulats, 'r')
+    plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, "Ukrainian", 
+            uklons, uklats, 'b')
     plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, "English", 
             enlons, enlats, 'g')
 
-elif border:
-    plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, "Border", 
-            lons, lats, 'r')
 
-
-
+if __name__ == "__main__":
+    import sys
+    myPath = sys.argv[1]
+    main(myPath)
+        
