@@ -10,14 +10,16 @@ import os
 # import countries
 
 
-def get_coords_by_language(myPath):
-
+def DataFrame_from_tweets(myPath, extention = '.txt'):
+    # figure out if path is a file or dir
     if os.path.isdir(myPath):
-        fileNames = [f for f in os.listdir(myPath) if f.endswith('.txt')]
-        
+        myDir = myPath
+        fileNames = [f for f in os.listdir(myDir) if f.endswith(extension)]
     elif os.path.isfile(myPath):
+        myDir = ''
         fileNames = [myPath]
-        
+
+    # make a list of tweets and then convert to pandas DataFrame
     tweets=[]
     for fileName in fileNames:
         fullpath = myDir+fileName
@@ -34,38 +36,26 @@ def get_coords_by_language(myPath):
                                              'user_lang',
                                              'tweet_id',
                                              'user_id'])
+    return df
 
-    ru = df[df['tweet_lang'] == 'ru']
-    uk = df[df['tweet_lang'] == 'uk']
-    en = df[df['tweet_lang'] == 'en']
 
-    rulats=[]
-    rulons=[]
-    for pair in ru['coords']:
+def get_coords_by_language(df, lang):
+    # filter DataFrame to one language
+    langDF = df[df['tweet_lang'] == lang]
+
+    lats=[]
+    lons=[]
+    for pair in langDF['coords']:
         pair = ast.literal_eval(pair)
-        rulats.append(pair[1])
-        rulons.append(pair[0])
+        lats.append(pair[1])
+        lons.append(pair[0])
 
-    uklats=[]
-    uklons=[]
-    for pair in uk['coords']:
-        pair = ast.literal_eval(pair)
-        uklats.append(pair[1])
-        uklons.append(pair[0])
-
-    enlats=[]
-    enlons=[]
-    for pair in en['coords']:
-        pair = ast.literal_eval(pair)
-        enlats.append(pair[1])
-        enlons.append(pair[0])
-
-    return rulats, rulons, uklats, uklons, enlats, enlons
+    return lats, lons
 
 
 
-def plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, title, 
-            lons, lats, color):
+def plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, 
+            lons, lats, color, title):
         m = Basemap(projection='merc',
                     resolution='i', 
                     llcrnrlon = llcrnrlon,
@@ -123,14 +113,15 @@ def main(myPath):
     urcrnrlon = 40.227172
     urcrnrlat = 52.379475
 
-    rulons,rulats, uklons,uklats, enlons,enlats = get_coords_by_language(myPath)
+    df = DataFrame_from_tweets(myPath)
     
-    plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, "Russian", 
-            rulons, rulats, 'r')
-    plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, "Ukrainian", 
-            uklons, uklats, 'b')
-    plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, "English", 
-            enlons, enlats, 'g')
+    langsColors = [('ru', 'r'), ('uk', 'b'), ('en', 'g')]
+    
+    for lang, color in langsColors:
+        lats, lons = get_coords_by_language(df, lang)
+    
+        plotMap(llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat, lons,
+                lats, color, title=lang)
 
 
 if __name__ == "__main__":
