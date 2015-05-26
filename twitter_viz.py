@@ -127,17 +127,20 @@ def plot_regex_matches(myPath, searchTerms, level='tweet_lang'):
 
     # compile our search terms as regex
     regex = (u'|').join(searchTerms)
-    
-    for lang in ['ru', 'uk', 'en']:
+
+    for lang in ['ru']:
         # subset just tweets from one language
         langDF = df[df.loc[:,(level)]==lang]
         langDF.loc[:,('date')] = langDF.loc[:,('time')].apply(lambda x:
                                         pd.to_datetime(x, dayfirst=True).date())
+        langDF.loc[:,('text')] = langDF['text'].apply(lambda x: codecs.decode(x,
+                                                            'utf-8').lower())
+        
         langTotal = langDF.date.value_counts()
 
+        print langTotal
         # subset tweets containing regex
-        langMatches = langDF[langDF.text.str.contains(regex,flags=re.IGNORECASE,
-                                                regex=True)].date.value_counts()
+        langMatches = langDF[langDF.text.str.contains(regex)]
         
         freqDF = pd.concat([langMatches, langTotal], axis=1)
         # plus-1 smoothing numerator
@@ -154,7 +157,7 @@ def plot_regex_matches(myPath, searchTerms, level='tweet_lang'):
     plt.xlabel("Day")
     plt.ylabel("Percent of Tweets")
     plt.show()
-
+ 
     
 
 def main():
@@ -177,12 +180,11 @@ def main():
     donetsk = u'донецк|донецьк|donetsk'
     maidan = u'майдан|maidan'
     simferopol = u'севастополь|sevastopol'
-    merged = [politics, minsk, putin, poroshenko, crimea, usa, news, dnr, lnr,
-              revolution, donbass, donetsk, maidan, war, simferopol]
+    merged = [u' она ', u' не ']
 
-    plot_length_of_tweets(myPath, kind)
+    plot_regex_matches(myPath, merged, kind )
 
-
+    
 if __name__ == "__main__":
     main()
 
