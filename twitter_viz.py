@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# used to calculate relative frequency of hashtags
 from __future__ import division
+from twitter_helpers import DataFrame_from_tweets
 import sys
 import codecs
 import os
@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import re
 import csv
 import ast
-from nltk import FreqDist
+# from nltk import FreqDist
 from collections import Counter
 import numpy as np
 import csv
@@ -45,18 +45,20 @@ def df_from_hashtags(dirPath, lang, numHashtags):
                             for d in hashtag:
                                 oneDay.append([d['text']][0].lower())
         hashList.append((date, oneDay, numTweets))
-
+        
     listOfTuples=[]
     for day in hashList:
         if numHashtags == 'all':
             for hashtag in FreqDist(day[1]).items():
                 listOfTuples.append((pd.to_datetime(day[0], dayfirst=False), 
-                                     hashtag[0], (hashtag[1]/day[2]), hashtag[1]))
+                                     hashtag[0], (hashtag[1]/day[2]),
+                                     hashtag[1]))
         # only look at n most common hashtags per day
         else:
             for hashtag in FreqDist(day[1]).items()[:numHashtags]:
                 listOfTuples.append((pd.to_datetime(day[0], dayfirst=False), 
-                                     hashtag[0], (hashtag[1]/day[2]), hashtag[1]))
+                                     hashtag[0], (hashtag[1]/day[2]),
+                                     hashtag[1]))
 
     df = pd.DataFrame(listOfTuples,columns=['date', 'hashtag', 'freq', 'count'])
 
@@ -65,8 +67,8 @@ def df_from_hashtags(dirPath, lang, numHashtags):
     return df
 
 
-def plot_common_hashtags(dirPath, lang, numHashtags, numHashtagsPlot):
-    df = df_from_hashtags(dirPath, lang, numHashtags)
+def plot_common_hashtags(myPath, lang, numHashtags, numHashtagsPlot):
+    df = df_from_hashtags(myPath, lang, numHashtags)
 
     # aggregate hashtags to find most common over all days
     groupDF = df.reset_index().groupby('hashtag').sum()
@@ -78,25 +80,25 @@ def plot_common_hashtags(dirPath, lang, numHashtags, numHashtagsPlot):
     plt.show()
 
 
-def plot_length_of_tweets(dirPath, lang, kind):
+def plot_length_of_tweets(myPath, kind):
     '''
-    create a histogram of length of tweets, in characters or tokens
+    INPUT:
+    myPath = a dir or file path
     kind = 'char' or 'token'
+    OUTPUT:
+    a histogram of length of tweets, in characters or tokens
     '''
-    tweetLens=[]
-    for tweetFile in os.listdir(dirPath):
-        if os.path.isfile(dirPath+tweetFile):
-            with open(dirPath+tweetFile, 'rU') as csvfile:
-                rawFile = csv.reader(csvfile, delimiter='\t', quotechar='"')
-                for rawTweet in rawFile:
-                    text = codecs.decode(rawTweet[1], 'utf-8')
-                    if rawTweet[4] == lang:
-                        if kind == 'char':
-                            tweetLens.append(len(text))
-                        if kind == 'token':
-                            tweetLens.append(len(text.split(' ')))
-    print len(tweetLens)
-    print np.mean(tweetLens)
+    df = DataFrame_from_tweets(myPath)
+
+    tweetLens = []
+    tweetTexts = df['text']
+    for tweetText in tweetTexts:
+        text = codecs.decode(tweetText, 'utf-8')
+        if kind == 'char':
+            tweetLens.append(len(text))
+        if kind == 'token':
+            tweetLens.append(len(text.split(' ')))
+                
     # use as many bins as longest tweet
     plt.hist(tweetLens, bins = max(tweetLens))
     # the 1.05* adds a little buffer space between edge of plot and max points
@@ -108,76 +110,77 @@ def plot_length_of_tweets(dirPath, lang, kind):
     plt.show()
 
 
-def plot_token_count(dirPath, userORtweetLang, searchTerms):
+def plot_regex_matches(myPath, searchTerms, level='tweet_lang'):
     '''
-    Given a search term, 'token', plot the percentage of tweets in which that
-    token appears relative to all tweets in that language.
+    INPUT:
+    (1) a list of unicode search terms
+    (2) a directory
+    (3) either 'user_lang' or 'tweet_lang'
+    OUTPUT:
+    (1) longitudinal linegraph of percentage of tweets which match that regex
+    for each language
     '''
-    if userORtweetLang == 'user':
-        level = 4
-    elif userORtweetLang == 'tweet':
-        level = 5
-    plt.figure()
+    # read in all tweets as DataFrame
+    df = DataFrame_from_tweets(myPath)
+    # initialize empty DataFrame to store daily counts
+    combinedDF = pd.DataFrame()
 
+    # compile our search terms as regex
+    regex = (u'|').join(searchTerms)
+    
     for lang in ['ru', 'uk', 'en']:
-        dayTweetCounts=[]
-        for tweetFile in os.listdir(dirPath):
-            # make sure tweetFile is a file, not a dir
-            if os.path.isfile(dirPath+tweetFile):
-                numMatches = 0
-                langTweets = 0
-                totalTweets = 0
-                with open(dirPath+tweetFile, 'rU') as csvfile:
-                    rawFile = csv.reader(csvfile, delimiter='\t', quotechar='"')
-                    for rawTweet in rawFile:
-                        totalTweets+=1
-                        if rawTweet[4] == lang:
-                            langTweets+=1
-                            date = rawTweet[3]
-                            text = codecs.decode(rawTweet[1], 'utf-8').lower()
-                            for token in searchTerms:
-                                token = re.compile(token, re.UNICODE)
-                                if re.search(token,text):
-                                    numMatches+=1
-                dayTweetCounts.append((pd.to_datetime(date, dayfirst=False),
-                                       ((numMatches+1)/(langTweets+1))))
-        df = pd.DataFrame(dayTweetCounts, columns=['date', 'freq'])
-        df = df.sort('date', ascending=True)
-        df[1:].plot(x='date', y='freq', label = lang)
+        # subset just tweets from one language
+        langDF = df[df.loc[:,(level)]==lang]
+        langDF.loc[:,('date')] = langDF.loc[:,('time')].apply(lambda x:
+                                        pd.to_datetime(x, dayfirst=True).date())
+        langTotal = langDF.date.value_counts()
 
-    legend = plt.legend(loc='best')
+        # subset tweets containing regex
+        langMatches = langDF[langDF.text.str.contains(regex,flags=re.IGNORECASE,
+                                                regex=True)].date.value_counts()
+        
+        freqDF = pd.concat([langMatches, langTotal], axis=1)
+        # plus-1 smoothing numerator
+        freqDF = freqDF.fillna(1)
+        # plus-1 smoothing denominator and freq calculation
+        freqSeries = freqDF.apply(lambda row: (row[0]/(row[1]+1))*100,
+                                        axis=1)
+
+        combinedDF[lang] = freqSeries
+
+    combinedDF.plot()
+    plt.legend(loc='best')
     plt.title('Political Tweets per Day')
     plt.xlabel("Day")
     plt.ylabel("Percent of Tweets")
     plt.show()
 
+    
 
 def main():
 
-    one = sys.argv[1]
-    two = sys.argv[2]
+    myPath= sys.argv[1]
+    kind = sys.argv[2]
 
-    politics = 'политик|політик|politic'       # ru and en peak
-    minsk = 'минск.*соглашен|мінськ.*угод|minsk agreement'   # lots higher and en peaks
-    putin = 'путин|путін|putin'                # uk peaks early
-    poroshenko = 'порошченко|poroshenko'       # low random 
-    crimea = 'крым|крим|crimea'                # ukraine peaks early
-    usa = 'обам[ау]|obama|сша|usa '                 # en peaks late
-    war = 'войн[ау]|війн[ау]|war '             # peaks april
-    news = 'новост|новини|news '                # 
-    dnr = 'днр|dnr'                          # few
-    lnr = 'лнр|lnr'                           # very few
-    revolution = 'революци|революці|revolution' # very en peaks
-    donbass = 'донбас|donbass'                 # uk peaks early
-    donetsk = 'донецк|донецьк|donetsk'
-    maidan = 'майдан|maidan'
-    simferopol = 'севастополь|sevastopol'
-    merged = [politics, minsk, putin, poroshenko, crimea, usa, news, dnr, lnr, 
+    politics = u'политик|політик|politic'
+    minsk = u'минск.*соглашен|мінськ.*угод|minsk agreement'
+    putin = u'путин|путін|putin'
+    poroshenko = u'порошченко|poroshenko' 
+    crimea = u'крым|крим|crimea'
+    usa = u'обам[ауео]|obama|сша|usa '
+    war = u'войн[ауео]|війн[ауео]|war '
+    news = u'новост|новини|news '
+    dnr = u'днр|dnr'
+    lnr = u'лнр|lnr'
+    revolution = u'революци|революці|revolution'
+    donbass = u'донбас|donbass'
+    donetsk = u'донецк|донецьк|donetsk'
+    maidan = u'майдан|maidan'
+    simferopol = u'севастополь|sevastopol'
+    merged = [politics, minsk, putin, poroshenko, crimea, usa, news, dnr, lnr,
               revolution, donbass, donetsk, maidan, war, simferopol]
 
-    plot_token_count(one, two, merged)
-
-    #plot_length_of_tweets(one, two, 'char')
+    plot_length_of_tweets(myPath, kind)
 
 
 if __name__ == "__main__":

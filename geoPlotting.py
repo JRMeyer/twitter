@@ -1,6 +1,7 @@
 import ast
 import pandas as pd
 import numpy as np
+from twitter_helpers import DataFrame_from_tweets
 from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
@@ -8,35 +9,6 @@ import csv
 import os
 # countries.py needs to be in same dir as this script
 # import countries
-
-
-def DataFrame_from_tweets(myPath, extention = '.txt'):
-    # figure out if path is a file or dir
-    if os.path.isdir(myPath):
-        myDir = myPath
-        fileNames = [f for f in os.listdir(myDir) if f.endswith(extension)]
-    elif os.path.isfile(myPath):
-        myDir = ''
-        fileNames = [myPath]
-
-    # make a list of tweets and then convert to pandas DataFrame
-    tweets=[]
-    for fileName in fileNames:
-        fullpath = myDir+fileName
-        with open(fullpath, 'rU') as csvfile:
-             f = csv.reader(csvfile, delimiter='\t', quotechar='"')
-             for row in f:
-                 tweets.append(row)
-
-        df = pd.DataFrame(tweets, columns=['coords',
-                                             'text',
-                                             'hashtags',
-                                             'time',
-                                             'tweet_lang',
-                                             'user_lang',
-                                             'tweet_id',
-                                             'user_id'])
-    return df
 
 
 def get_coords_by_language(df, lang):
