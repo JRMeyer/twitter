@@ -114,41 +114,46 @@ def plot_regex_matches(myPath, searchTerms, level='tweet_lang'):
     '''
     INPUT:
     (1) a list of unicode search terms
-    (2) a directory
+    (2) a directory of files
     (3) either 'user_lang' or 'tweet_lang'
     OUTPUT:
-    (1) longitudinal linegraph of percentage of tweets which match that regex
+    (1) longitudinal linegraph of percentage of tweets which match given regex
     for each language
     '''
     # read in all tweets as DataFrame
     df = DataFrame_from_tweets(myPath)
+    
     # initialize empty DataFrame to store daily counts
     combinedDF = pd.DataFrame()
-
-    # compile our search terms as regex
+    
+    # compile search terms as one regex
     regex = (u'|').join(searchTerms)
 
-    for lang in ['ru']:
+    for lang in ['ru', 'uk', 'en']:
         # subset just tweets from one language
         langDF = df[df.loc[:,(level)]==lang]
+        # convert timestamp to year-month-day format
         langDF.loc[:,('date')] = langDF.loc[:,('time')].apply(lambda x:
                                         pd.to_datetime(x, dayfirst=True).date())
+        # lower text of tweets
         langDF.loc[:,('text')] = langDF['text'].apply(lambda x: codecs.decode(x,
                                                             'utf-8').lower())
-        
+        # count all tweets in language
         langTotal = langDF.date.value_counts()
 
-        print langTotal
-        # subset tweets containing regex
-        langMatches = langDF[langDF.text.str.contains(regex)]
-        
+        # count tweets containing regex
+        langMatches = langDF[langDF.text.str.contains(regex)].date.value_counts()
+
+        # merge the counts into one df, so we can calculate frequency
         freqDF = pd.concat([langMatches, langTotal], axis=1)
+
         # plus-1 smoothing numerator
         freqDF = freqDF.fillna(1)
+        
         # plus-1 smoothing denominator and freq calculation
         freqSeries = freqDF.apply(lambda row: (row[0]/(row[1]+1))*100,
                                         axis=1)
-
+        # add language frequencies to big df
         combinedDF[lang] = freqSeries
 
     combinedDF.plot()
@@ -166,12 +171,12 @@ def main():
     kind = sys.argv[2]
 
     politics = u'политик|політик|politic'
-    minsk = u'минск.*соглашен|мінськ.*угод|minsk agreement'
+    minsk = u'минск.* соглашен|мінськ.* угод|minsk.* agreement'
     putin = u'путин|путін|putin'
     poroshenko = u'порошченко|poroshenko' 
     crimea = u'крым|крим|crimea'
-    usa = u'обам[ауео]|obama|сша|usa '
-    war = u'войн[ауео]|війн[ауео]|war '
+    usa = u'обам. |obama|сша|usa '
+    war = u'войн. |війн. |war '
     news = u'новост|новини|news '
     dnr = u'днр|dnr'
     lnr = u'лнр|lnr'
@@ -180,9 +185,9 @@ def main():
     donetsk = u'донецк|донецьк|donetsk'
     maidan = u'майдан|maidan'
     simferopol = u'севастополь|sevastopol'
-    merged = [u' она ', u' не ']
+    merged = [putin, poroshenko, maidan]
 
-    plot_regex_matches(myPath, merged, kind )
+    plot_regex_matches(myPath, merged, kind)
 
     
 if __name__ == "__main__":
