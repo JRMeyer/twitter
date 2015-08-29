@@ -67,17 +67,58 @@ def df_from_hashtags(dirPath, lang, numHashtags):
     return df
 
 
-def plot_common_hashtags(myPath, lang, numHashtags, numHashtagsPlot):
-    df = df_from_hashtags(myPath, lang, numHashtags)
+def plot_common_hashtags(myPath, level='tweet_lang'):
+    '''
+    INPUT:
+    (1) a list of unicode search terms
+    (2) a directory of files
+    (3) either 'user_lang' or 'tweet_lang'
+    OUTPUT:
+    (1) longitudinal linegraph of percentage of tweets which match given regex
+    for each language
+    '''
+    # read in all tweets as DataFrame
+    df = DataFrame_from_tweets(myPath)
+    
+    # initialize empty DataFrame to store daily counts
+    combinedDF = pd.DataFrame()
+    
+    for lang in ['ru']:
+        # subset just tweets from one language
+        langDF = df[df.loc[:,(level)]==lang]
+        # convert timestamp to year-month-day format
+        langDF.loc[:,('date')] = langDF.loc[:,('time')].apply(lambda x:
+                                        pd.to_datetime(x, dayfirst=True).date())
+        # count all tweets in language
+        langTotal = langDF.date.value_counts()
 
-    # aggregate hashtags to find most common over all days
-    groupDF = df.reset_index().groupby('hashtag').sum()
-    sortedDF = groupDF['count'].order('count', ascending=False)
+        langHashtags = langDF[langDF.hashtags.apply(lambda x:
+                                                    bool(ast.literal_eval(x)))]
+        
+        langHashtags.loc[:,('hashtags')] = langHashtags.hashtags.apply(lambda x: [tag['text'] for tag in ast.literal_eval(x)])
+        bagOfHashes = [hashtag for hashtags in langHashtags.hashtags for hashtag in hashtags]
+        print FreqDist(bagOfHashes)[:10]
+        
+        # combinedDF[lang] = freqSeries
 
-    plt.figure()
-    sortedDF[:numHashtagsPlot].plot(kind='barh')
-    plt.title('Most Common Hashtags')
-    plt.show()
+    # combinedDF.plot()
+    # plt.legend(loc='best')
+    # plt.title('Political Tweets per Day')
+    # plt.xlabel("Day")
+    # plt.ylabel("Percent of Tweets")
+    # plt.show()
+ 
+    
+    # df = df_from_hashtags(myPath, lang, numHashtags)
+
+    # # aggregate hashtags to find most common over all days
+    # groupDF = df.reset_index().groupby('hashtag').sum()
+    # sortedDF = groupDF['count'].order('count', ascending=False)
+
+    # plt.figure()
+    # sortedDF[:numHashtagsPlot].plot(kind='barh')
+    # plt.title('Most Common Hashtags')
+    # plt.show()
 
 
 def plot_length_of_tweets(myPath, kind):
@@ -122,6 +163,7 @@ def plot_regex_matches(myPath, searchTerms, level='tweet_lang'):
     '''
     # read in all tweets as DataFrame
     df = DataFrame_from_tweets(myPath)
+    print 'tweets read in as Pandas DataFrame...'
     
     # initialize empty DataFrame to store daily counts
     combinedDF = pd.DataFrame()
@@ -156,6 +198,8 @@ def plot_regex_matches(myPath, searchTerms, level='tweet_lang'):
         # add language frequencies to big df
         combinedDF[lang] = freqSeries
 
+        print 'one language plotted...'
+
     combinedDF.plot()
     plt.legend(loc='best')
     plt.title('Political Tweets per Day')
@@ -177,18 +221,19 @@ def main():
     crimea = u'крым|крим|crimea'
     usa = u'обам. |obama|сша|usa '
     war = u'войн. |війн. |war '
-    news = u'новост|новини|news '
+    news = u'новости|новини|news '
     dnr = u'днр|dnr'
     lnr = u'лнр|lnr'
     revolution = u'революци|революці|revolution'
     donbass = u'донбас|donbass'
     donetsk = u'донецк|донецьк|donetsk'
     maidan = u'майдан|maidan'
-    simferopol = u'севастополь|sevastopol'
-    merged = [putin, poroshenko, maidan]
+    sevastopol = u'севастополь|sevastopol'
+    merged = [politics, minsk, crimea, usa, war, news, dnr, lnr, revolution,
+              donbass, donetsk, sevastopol, putin, poroshenko, maidan]
 
+    # plot_common_hashtags(myPath)
     plot_regex_matches(myPath, merged, kind)
-
     
 if __name__ == "__main__":
     main()
