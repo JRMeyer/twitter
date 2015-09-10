@@ -231,9 +231,9 @@ def main():
     sevastopol = u'севастополь|sevastopol'
     merged = [politics, minsk, crimea, usa, war, news, dnr, lnr, revolution,
               donbass, donetsk, sevastopol, putin, poroshenko, maidan]
-
-    # plot_common_hashtags(myPath)
-    plot_regex_matches(myPath, merged, kind)
+    
+    plot_length_of_tweets(myPath, kind)
+    # plot_regex_matches(myPath, merged, kind)
     
 if __name__ == "__main__":
     main()
