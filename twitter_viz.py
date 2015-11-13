@@ -66,7 +66,7 @@ def plot_common_hashtags(myPath, kind='tweet_lang', numHashtags=10):
         plt.bar(indexes, counts)
         plt.xticks(indexes + width * 0.5, words, rotation=90, fontsize=18)
         plt.tight_layout()
-        plt.savefig(lang + "_" + kind + "_" + 'plot.pdf')
+        plt.savefig(lang + "_" + kind + "_" + 'plot.jpg')
 
 
 def plot_tweet_langs(myPath, numLangs = 10, kind ='tweet_lang'):
@@ -93,7 +93,7 @@ def plot_tweet_langs(myPath, numLangs = 10, kind ='tweet_lang'):
     plt.xlabel("Language Code")
     plt.xticks(indexes + width * 0.5, langs, rotation=90, fontsize=18)
     plt.tight_layout()
-    plt.savefig("tweet_counts_" + kind + "_" + 'plot.pdf')
+    plt.savefig("tweet_counts_" + kind + "_" + 'plot.jpg')
 
 
     
