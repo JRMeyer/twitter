@@ -1,3 +1,7 @@
+'''
+This regex comes from Christopher Potts @ Stanford
+'''
+
 import re
 
 ### 
