@@ -1,5 +1,4 @@
 # Lots of good info about the API at https://dev.twitter.com/overview/api/tweets
-
 import sys
 import tweepy
 import csv
@@ -7,15 +6,12 @@ import csv
 from accessKeys import consumer_key, consumer_secret, access_key, access_secret
 
 
-auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-auth.set_access_token(access_key, access_secret)
-
 class CustomStreamListener(tweepy.StreamListener):
     '''
     This is the listener, resposible for receiving data
     '''
     def __init__(self, api=None):
-        self.api = API(retry_count = 10, timeout = 1300)
+        self.api = tweepy.API(retry_count=100, timeout=1000)
         
     def on_status(self, tweet):
         # throw out any tweet without geotags
@@ -39,30 +35,35 @@ class CustomStreamListener(tweepy.StreamListener):
             with open(timeStamp.split(' ')[0] +'.txt', 'a') as outFile:
                 writer = csv.writer(outFile, delimiter ='\t', quotechar='"')
                 writer.writerow([tweet_coordinates, 
-                                text,
-                                hashtags,
-                                timeStamp,
-                                tweetLang,
-                                userLang,
-                                tweetID,
+                                 text,
+                                 hashtags,
+                                 timeStamp,
+                                 tweetLang,
+                                 userLang,
+                                 tweetID,
                                  userID])
         return True
 
-    
     def on_error(self, status_code):
+        print('status_code error: ' + str(status_code))
         # Don't kill the stream on an error
         return True
-
     
     def on_timeout(self):
+        print('timeout error!')
         # Don't kill the stream on timeout
         return True
 
 
-sapi = tweepy.streaming.Stream(auth, CustomStreamListener())
+if __name__ == '__main__':
+    # [Western-longitude,Southern-latitude,Eastern-longitude,Northern-latitude]
+    world = [-180,-90,180,90]
+    ukraine = [22.1357201,44.386383,40.227172,52.379475]
+    kyrgyzstan = [69.2193603,39.1130136,80.2606201,43.3011962]
+    central_asia = [46.25, 29.25, 87.5, 55.5]
 
-# to get all geotagged tweets in world, use [-180,-90,180,90]
-sapi.filter(locations=[22.1357201, # Western longitude
-                       44.386383,  # Southern latitude
-                       40.227172,  # Eastern longitude
-                       52.379475]) # Northern latitude
+    auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+    auth.set_access_token(access_key, access_secret)
+    sapi = tweepy.streaming.Stream(auth, CustomStreamListener())
+    sapi.filter(locations=central_asia)
+
