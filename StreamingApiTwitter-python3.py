@@ -27,7 +27,6 @@ class CustomStreamListener(tweepy.StreamListener):
                 text = ((tweet.text).replace("\"","'")).replace("\n", ", ")
                 hashtags = str(tweet.entities['hashtags'])
                 timeStamp = str(tweet.created_at)
-                print(timeStamp)
                 tweetLang = tweet.lang
                 userLang = tweet.user.lang
                 tweetID = tweet.id_str
@@ -45,18 +44,17 @@ class CustomStreamListener(tweepy.StreamListener):
                                      tweetID,
                                      userID])
         except Exception:
-            print('ERROR: ' + str(Exception))
+            print('ERROR 1:', sys.exc_info()[0])
             pass
-
         return True
 
     def on_error(self, status_code):
-        print('ERROR: ' + str(status_code))
+        print('ERROR 2: ' + str(status_code))
         # Don't kill the stream on an error
         return True
     
     def on_timeout(self):
-        print('ERROR: TIMEOUT!')
+        print('ERROR 3: TIMEOUT')
         # Don't kill the stream on timeout
         return True
 
@@ -70,6 +68,12 @@ if __name__ == '__main__':
 
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_key, access_secret)
-    sapi = tweepy.streaming.Stream(auth, CustomStreamListener())
-    sapi.filter(locations=central_asia)
+
+    while True:
+        try:
+            sapi = tweepy.streaming.Stream(auth, CustomStreamListener())
+            sapi.filter(locations=central_asia)
+        except Exception:
+            print('ERROR 4:', sys.exc_info()[0])
+            continue
 
