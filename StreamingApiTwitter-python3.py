@@ -1,9 +1,14 @@
 # Lots of good info about the API at https://dev.twitter.com/overview/api/tweets
+import time
 import sys
 import tweepy
 import csv
 # Keys are on your application's Details page at https://dev.twitter.com/apps
 from accessKeys import consumer_key, consumer_secret, access_key, access_secret
+from tweepy.api import API
+from tweepy.models import Status
+from tweepy.utils import import_simplejson
+json = import_simplejson()
 
 
 class CustomStreamListener(tweepy.StreamListener):
@@ -11,8 +16,49 @@ class CustomStreamListener(tweepy.StreamListener):
     This is the listener, resposible for receiving data
     '''
     def __init__(self, api=None):
-        self.api = tweepy.API(retry_count=100, timeout=1000)
-        
+        self.api = API(retry_count=100, timeout=1000)
+
+    def on_data(self, raw_data):
+        """
+        Called when raw data is received from connection.
+        Override this method if you wish to manually handle
+        the stream data. Return False to stop stream and close connection.
+        """
+        print(type(raw_data))
+        data = json.loads(raw_data)
+        print(type(data))
+
+        if 'in_reply_to_status_id' in data:
+            status = Status.parse(self.api, data)
+            if self.on_status(status) is False:
+                return False
+        elif 'delete' in data:
+            delete = data['delete']['status']
+            if self.on_delete(delete['id'], delete['user_id']) is False:
+                return False
+        elif 'event' in data:
+            status = Status.parse(self.api, data)
+            if self.on_event(status) is False:
+                return False
+        elif 'direct_message' in data:
+            status = Status.parse(self.api, data)
+            if self.on_direct_message(status) is False:
+                return False
+        elif 'friends' in data:
+            if self.on_friends(data['friends']) is False:
+                return False
+        elif 'limit' in data:
+            if self.on_limit(data['limit']['track']) is False:
+                return False
+        elif 'disconnect' in data:
+            if self.on_disconnect(data['disconnect']) is False:
+                return False
+        elif 'warning' in data:
+            if self.on_warning(data['warning']) is False:
+                return False
+        else:
+            print("Unknown message type: " + str(raw_data))
+
     def on_status(self, tweet):
         # throw out any tweet without geotags
         if tweet.coordinates == None:
