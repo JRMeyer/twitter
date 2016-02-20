@@ -4,16 +4,14 @@ from twitter_helpers import DataFrame_from_tweets
 import sys
 import codecs
 import os
-import pandas as pd
-import matplotlib.pyplot as plt
 import re
-import csv
 import ast
-from nltk import FreqDist
-from collections import Counter
-import numpy as np
 import csv
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 from collections import Counter
+
 
 
 def plot_common_hashtags(myPath, kind='tweet_lang', numHashtags=10):
@@ -30,36 +28,23 @@ def plot_common_hashtags(myPath, kind='tweet_lang', numHashtags=10):
     # initialize empty DataFrame to store daily counts
     combinedDF = pd.DataFrame()
     
-    for lang in ['ru', 'uk', 'en']:
-        # subset just tweets from one language
-        langDF = df[df.loc[:,(kind)]==lang]
-        
-        # add 'date' column by converting timestamp to year-month-day format
-        langDF.loc[:,('date')] = langDF.loc[:,('time')].apply(lambda x:
-                                        pd.to_datetime(x, dayfirst=True).date())
-        
-        # keep only tweets with at least one hashtag
-        langHashtags = langDF[langDF.hashtags.apply(lambda x:
-                                                    bool(ast.literal_eval(x)))]
+    for lang in ['ru', 'en']:
+        # subset just tweets from one language and save col of hashtags as list
+        hashtagList = df.loc[df[kind] == lang].hashtags.tolist()
 
-        # pull out text from hashtags
-        langHashtags.loc[:,('hashtags')] = langHashtags.hashtags.apply(lambda x:
-                                [tag['text'] for tag in ast.literal_eval(x)])
+        realHashtags = []
+        for potentialTags in hashtagList:
+            tags = ast.literal_eval(potentialTags)
+            if tags:
+                for tag in tags:
+                    realHashtags.append(tag['text'])
 
         # make FreqDist from a bag of hashtags
-        fd = Counter([hashtag for hashtags in langHashtags.hashtags for
-                       hashtag in hashtags])
+        fd = Counter(realHashtags)
 
         # split words and their counts up for plotting
         words, counts = zip(*fd.most_common(numHashtags))
         indexes = np.arange(len(words))
-
-        # things u need to get Cyrillic to show (more than just utf-8)
-        plt.rc('font',**{'family':'serif'})
-        plt.rc('text', usetex=True)
-        plt.rc('text.latex',unicode=True)
-        plt.rc('text.latex',preamble='\usepackage[utf8]{inputenc}')
-        plt.rc('text.latex',preamble='\usepackage[russian]{babel}')
 
         # make the plot
         width = 1
@@ -94,7 +79,7 @@ def plot_tweet_langs(myPath, numLangs = 10, kind ='tweet_lang'):
     plt.xticks(indexes + width * 0.5, langs, rotation=90, fontsize=18)
     plt.tight_layout()
     plt.savefig("tweet_counts_" + kind + "_" + 'plot.jpg')
-
+    print("Your plot has been saved to your working dir.")
 
     
 def plot_length_of_tweets(myPath, kind):
@@ -139,7 +124,7 @@ def plot_regex_matches(myPath, searchTerms, kind='tweet_lang'):
     '''
     # read in all tweets as DataFrame
     df = DataFrame_from_tweets(myPath)
-    print 'tweets read in as Pandas DataFrame...'
+    print('tweets read in as Pandas DataFrame...')
     
     # initialize empty DataFrame to store daily counts
     combinedDF = pd.DataFrame()
@@ -174,7 +159,7 @@ def plot_regex_matches(myPath, searchTerms, kind='tweet_lang'):
         # add language frequencies to big df
         combinedDF[lang] = freqSeries
 
-        print 'one language plotted...'
+        print('one language plotted...')
 
     combinedDF.plot()
     plt.legend(loc='best')
@@ -208,9 +193,8 @@ def searchTerms():
 def main():
 
     myPath= sys.argv[1]
-
-    plot_common_hashtags(myPath)
-    plot_tweet_langs(myPath)
+    # plot_tweet_langs(myPath, kind="user_lang")
+    plot_common_hashtags(myPath, kind="user_lang")
 
     # terms= searchTerms()
     # plot_length_of_tweets(myPath, kind)

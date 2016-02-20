@@ -21,10 +21,10 @@ def DataFrame_from_tweets(myPath, extension = '.txt'):
     # make a list of tweets and then convert to pandas DataFrame
     tweets=[]
     for fileName in fileNames:
-        print fileName
+        print(fileName)
         fullPath = myDir+fileName
         if os.path.isfile(fullPath):
-            with open(fullPath, 'rU') as csvfile:
+            with open(fullPath, encoding='utf8') as csvfile:
                  f = csv.reader(csvfile, delimiter='\t', quotechar='"')
                  for row in f:
                      tweets.append(row)
